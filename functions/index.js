@@ -53,7 +53,8 @@ const getCloneXCollection = (response) => {
     "Undead": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
     "Murakami": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
     "Alien": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}}};
-  const clonesDrip = {"Human": 0, "Robot": 0, "Angel": 0, "Demon": 0, "Reptile": 0, "Undead": 0, "Murakami": 0, "Alien": 0};
+  const clonesDnaStats = {"Human": 0, "Robot": 0, "Angel": 0, "Demon": 0, "Reptile": 0, "Undead": 0, "Murakami": 0, "Alien": 0};
+  const clonesDripStats = {"Human": 0, "Robot": 0, "Angel": 0, "Demon": 0, "Reptile": 0, "Undead": 0, "Murakami": 0, "Alien": 0};
 
   const startTime = performance.now();
   const callOSCloneXData = () => {
@@ -66,30 +67,32 @@ const getCloneXCollection = (response) => {
             const dna = clone.traits.find((e) => e.trait_type==="DNA").value;
             const drip = clone.traits.find((e) => e.trait_type==="Type" && e.value === "MURAKAMI DRIP") ? true : false;
 
-            if (drip) clonesDrip[dna]++;
+            clonesDnaStats[dna]++;
+            if (drip) clonesDripStats[dna]++;
+            if (clone.sell_orders===null && clone.seaport_sell_orders===null) return;
+            if (clone.sell_orders!==null && clone.sell_orders[0].payment_token_contract.symbol == "WETH") return;
+            const cloneOrder = clone.sell_orders === null ? clone.seaport_sell_orders : clone.sell_orders;
 
-            if (clone.sell_orders===null || clone.sell_orders[0].payment_token_contract.symbol == "WETH") return;
+            if (cloneOrder[0].current_price===0) return; // bids
 
-            if (drip && clone.sell_orders[0].current_price/Math.pow(10, 18) < clonesPrices[dna].drip.price) {
-              clonesPrices[dna].drip.price = clone.sell_orders[0].current_price/Math.pow(10, 18);
+            if (drip && cloneOrder[0].current_price/Math.pow(10, 18) < clonesPrices[dna].drip.price) {
+              clonesPrices[dna].drip.price = cloneOrder[0].current_price/Math.pow(10, 18);
               clonesPrices[dna].drip.tokenId = clone.token_id;
-              // console.log(dna + clone.token_id + " (DRIP) : " + JSON.stringify(clonesPrices[dna].drip));
             }
-            if (clone.sell_orders[0].current_price/Math.pow(10, 18) > clonesPrices[dna].floor.price) return;
-            clonesPrices[dna].floor.price = clone.sell_orders[0].current_price/Math.pow(10, 18);
+            if (cloneOrder[0].current_price/Math.pow(10, 18) > clonesPrices[dna].floor.price) return;
+            clonesPrices[dna].floor.price = cloneOrder[0].current_price/Math.pow(10, 18);
             clonesPrices[dna].floor.tokenId = clone.token_id;
             console.log(dna + clone.token_id + " : " + JSON.stringify(clonesPrices[dna].floor));
           });
           const next = res.data.next;
           if (next === null) {
             database.ref("clonex/priceStats").set(clonesPrices);
-            clonesDrip["Total"] = clonesDrip["Human"] + clonesDrip["Robot"] + clonesDrip["Angel"] + clonesDrip["Demon"] + clonesDrip["Reptile"] + clonesDrip["Undead"] + clonesDrip["Murakami"] + clonesDrip["Alien"];
-            database.ref("clonex/dripStats").set(clonesDrip);
+            clonesDnaStats["Total"] = clonesDnaStats["Human"] + clonesDnaStats["Robot"] + clonesDnaStats["Angel"] + clonesDnaStats["Demon"] + clonesDnaStats["Reptile"] + clonesDnaStats["Undead"] + clonesDnaStats["Murakami"] + clonesDnaStats["Alien"];
+            database.ref("clonex/dnaStats").set(clonesDnaStats);
+            clonesDripStats["Total"] = clonesDripStats["Human"] + clonesDripStats["Robot"] + clonesDripStats["Angel"] + clonesDripStats["Demon"] + clonesDripStats["Reptile"] + clonesDripStats["Undead"] + clonesDripStats["Murakami"] + clonesDripStats["Alien"];
+            database.ref("clonex/dripStats").set(clonesDripStats);
             const lastUpdate = new Date().toUTCString();
             database.ref("clonex/lastUpdated").set(lastUpdate);
-            getCloneXDnaStats();
-            // res.status(200).send(clonesPrices);
-            // res.status(200).send(JSON.stringify(clonesPrices));
             const endTime = performance.now();
             const totalTime = (endTime - startTime)/1000;
             const output = "\n Function took " + totalTime + " seconds / " + totalTime/60 + "minutes to run.";
@@ -113,17 +116,6 @@ const getCloneXCollection = (response) => {
         });
   };
   callOSCloneXData();
-};
-
-const getCloneXDnaStats = () => {
-  axios.get("https://api.opensea.io/api/v1/collection/clonex")
-      .then((res) => {
-        const dnaStats = res.data.collection.traits.DNA;
-        let total = 0;
-        dnaStats.forEach((dna) => total += dna);
-        dnaStats["total"] = total;
-        database.ref("clonex/dnaStats").set(dnaStats);
-      });
 };
 
 const getSkinVialCollection = (response) => {
@@ -195,164 +187,3 @@ const getSkinVialCollection = (response) => {
   };
   callOSSkinVialData();
 };
-
-
-// exports.callDnaStats = functions.https.onRequest((req, response) => {
-//   // for (let i = 0; i<20000; i++) {
-//   //   if (i%100==0) console.log(i);
-//   // }
-//   getCloneXDnaStats();
-// });
-
-
-// exports.callApi = functions.https.onRequest((req, response) => {
-//   console.log(process.env.API_KEY);
-//   // response.send(console.log(process.env.API_KEY));
-//   // for (let i = 1; i< 20001; i++) {
-//   //   // const ref = "users/user/" + i + "/status/";
-//   //   if (i%10==0) {
-//   //     console.log(i);
-//   //   }
-//   //   // database.ref(ref).set("0");
-//   // }
-//   axios.get("https://api.opensea.io/api/v1/collection/clonex/stats")
-//       .then((res) => {
-//         // const stats = res.data["stats"];
-//         // const floorPrice = String(stats);
-//         // response.send(res.data);
-//         // // response.send(floorPrice);
-//         // console.log(floorPrice);
-//         // const stats = res.data;
-//         console.log(JSON.parse(JSON.stringify(res.data)));
-//         response.send(res.data);
-//       })
-//       .catch((err) => {
-//         response.send("Error : " + String(err));
-//       });
-// });
-
-// exports.textToLength = functions.https.onRequest((request, response) => {
-//   const text = request.query.text;
-//   const textLength = text.length;
-//   response.send(String(textLength));
-// });
-
-// exports.test = functions.https.onRequest(app);
-
-// HELLO WORLD
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//   // functions.logger.info("Hello logs!", {structuredData: true});
-//   // response.send("Hello from Firebase (from vscode deployment)!");
-//   response.send(process.env.API_KEY);
-// });
-
-// ON NEW UPDATE TO DATABASE
-// exports.newNodesDetected = functions.database.ref("users/{userId}/Name")
-//     .onWrite((change, context) => {
-//       const oldName = change.before.val();
-//       const newName = change.after.val();
-//       const userId = context.params.userId;
-//       database.ref("metadata/lastChangedName/").set(userId + " changed his name from " + oldName + " to " + newName);
-//       console.log(userId + " changed his name from " + oldName + " to " + newName);
-//     });
-
-// exports.helloClonex = functions.https.onRequest((request, response) => {
-//   let pointer = "";
-//   let newUrl = "https://api.opensea.io/api/v1/assets?collection_slug=clonex&order_direction=desc&limit=50" + pointer + "&include_orders=true";
-//   const clonesObject = {};
-//   const clonesPrices = {
-//     "Human": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Robot": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Angel": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Demon": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Reptile": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Undead": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Murakami": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}},
-//     "Alien": {"floor": {"tokenId": 0, "price": Math.pow(10, 9)}, "drip": {"tokenId": 0, "price": Math.pow(10, 9)}}};
-
-//   const startTime = performance.now();
-//   const getCloneXCollection = () => {
-//     axios.get(newUrl, {headers: {"X-API-KEY": process.env.API_KEY}})
-//         .then((res) => {
-//           const _startTime = performance.now();
-
-//           const assets = res.data.assets;
-//           assets.forEach((clone) => {
-//             clonesObject[clone.token_id] = clone;
-//             const dna = clone.traits.find((e) => e.trait_type==="DNA").value;
-//             const drip = clone.traits.find((e) => e.trait_type==="Type" && e.value === "MURAKAMI DRIP") ? true : false;
-//             if (clone.sell_orders===null) return;
-//             if (clone.sell_orders[0].payment_token_contract.symbol == "WETH") return;
-//             if (drip && clone.sell_orders[0].current_price/Math.pow(10, 18) < clonesPrices[dna].drip.price) {
-//               clonesPrices[dna].drip.price = clone.sell_orders[0].current_price/Math.pow(10, 18);
-//               clonesPrices[dna].drip.tokenId = clone.token_id;
-//               console.log(dna + clone.token_id + " (DRIP) : " + JSON.stringify(clonesPrices[dna].drip));
-//             }
-//             if (clone.sell_orders[0].current_price/Math.pow(10, 18) > clonesPrices[dna].floor.price) return;
-//             clonesPrices[dna].floor.price = clone.sell_orders[0].current_price/Math.pow(10, 18);
-//             clonesPrices[dna].floor.tokenId = clone.token_id;
-//             console.log(dna + clone.token_id + " : " + JSON.stringify(clonesPrices[dna].floor));
-//           });
-//           const next = res.data.next;
-//           if (next==null) {
-//             const endTime = performance.now();
-//             const totalTime = (endTime - startTime)/1000;
-//             const output = "\n Function took " + totalTime + " seconds / " + totalTime/60 + "minutes to run.";
-//             console.log(output);
-//             const webOutput = `CLONEX FLOOR PRICES
-//                         \n\n
-//                         \t ======== HUMAN ======== \n
-//                         Floor : ${clonesPrices["Human"].floor.tokenId} - ${clonesPrices["Human"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Human"].drip.tokenId} - ${clonesPrices["Human"].drip.price}ETH ; \n
-//                         \t ======== ROBOT ======== \n
-//                         Floor : ${clonesPrices["Robot"].floor.tokenId} - ${clonesPrices["Robot"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Robot"].drip.tokenId} - ${clonesPrices["Robot"].drip.price}ETH ; \n
-//                         \t ======== DEMON ======== \n
-//                         Floor : ${clonesPrices["Demon"].floor.tokenId} - ${clonesPrices["Demon"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Demon"].drip.tokenId} - ${clonesPrices["Demon"].drip.price}ETH ; \n
-//                         \t ======== ANGEL ======== \n
-//                         Floor : ${clonesPrices["Angel"].floor.tokenId} - ${clonesPrices["Angel"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Angel"].drip.tokenId} - ${clonesPrices["Angel"].drip.price}ETH ; \n
-//                         \t ======== REPTILE ======== \n
-//                         Floor : ${clonesPrices["Reptile"].floor.tokenId} - ${clonesPrices["Reptile"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Reptile"].drip.tokenId} - ${clonesPrices["Reptile"].drip.price}ETH ; \n
-//                         \t ======== UNDEAD ======== \n
-//                         Floor : ${clonesPrices["Undead"].floor.tokenId} - ${clonesPrices["Undead"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Undead"].drip.tokenId} - ${clonesPrices["Undead"].drip.price}ETH ; \n
-//                         \t ======== MURAKAMI ======== \n
-//                         Floor : ${clonesPrices["Murakami"].floor.tokenId} - ${clonesPrices["Murakami"].floor.price}ETH \n
-//                         \t ======== ALIEN ======== \n
-//                         Floor : ${clonesPrices["Alien"].floor.tokenId} - ${clonesPrices["Alien"].floor.price}ETH ; Murakami Drip : ${clonesPrices["Alien"].drip.tokenId} - ${clonesPrices["Alien"].drip.price}ETH ; \n
-//                         \n\n Job began at ${new Date(startTime)} and ended at ${new Date()}
-//                         \n Full update took ${totalTime.toFixed(2)} seconds / ${(totalTime/60).toFixed(2)} minutes to run.
-//                         `;
-//             response.send(webOutput);
-//             database.ref("clonex/priceStats").set(clonesPrices);
-//             // database.ref("clonex/clonez").set(assets);
-//             database.ref("clonex/lastUpdated").set(new Date());
-//             getCloneXDnaStats();
-//             return;
-//           }
-//           pointer = "&cursor=" + next.replaceAll("=", "%3D");
-//           newUrl = "https://api.opensea.io/api/v1/assets?collection_slug=clonex&order_direction=desc&limit=50" + pointer + "&include_orders=true";
-
-//           const _diffTime = performance.now() - _startTime;
-//           getCloneXCollection();
-//           if (_diffTime > 0 && _diffTime < 250 ) {
-//             setTimeout(() => {
-//               //
-//             }, 250-_diffTime);
-//           } else {
-//             getCloneXCollection();
-//           }
-//         })
-//         .catch((err) => {
-//           console.log(err);
-//           // console.log(clonesObject);
-//           // console.log(clonesPrices);
-//           // console.log(startTime);
-//           // response.send("Error : " + String(err));
-//         });
-//   };
-//   getCloneXCollection();
-// });
-
-// exports.pushDataEveryMinute = functions.pubsub.schedule("every 1 hours").onRun((context)=>{
-//   const date = new Date();
-//   database.ref("metadata/lastUpdate/").set(date.getTime());
-//   console.log("ran");
-// });
