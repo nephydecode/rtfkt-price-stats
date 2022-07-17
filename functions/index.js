@@ -131,14 +131,14 @@ const getSkinVialCollection = (response) => {
   let pointer = "";
   let newUrl = "https://api.opensea.io/api/v1/assets?collection_slug=skinvial-evox&order_direction=desc&limit=50&" + pointer + "include_orders=true";
   const skinvialCollection = {
-    "Human": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Robot": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Angel": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Demon": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Reptile": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Undead": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Murakami": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
-    "Alien": {"count": 0, "floor": {"tokenId": 0, "price": 10**9}},
+    "Human": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Robot": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Angel": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Demon": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Reptile": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Undead": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Murakami": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
+    "Alien": {"count": 0, "floor": {"tokenId": 0, "price": Math.pow(10, 9)}},
   };
   const skinvialDnaStats = {"Human": 0, "Robot": 0, "Angel": 0, "Demon": 0, "Reptile": 0, "Undead": 0, "Murakami": 0, "Alien": 0};
 
@@ -157,8 +157,8 @@ const getSkinVialCollection = (response) => {
             if (skin.sell_orders===null && skin.seaport_sell_orders===null) return;
             if (skin.sell_orders!==null && skin.sell_orders[0].payment_token_contract.symbol == "WETH") return;
             const skinOrder = skin.sell_orders === null ? skin.seaport_sell_orders : skin.sell_orders;
-            if (skinOrder[0].current_price/10**18 > skinvialCollection[dna].floor.price) return;
-            skinvialCollection[dna].floor.price = skinOrder[0].current_price/10**18;
+            if (skinOrder[0].current_price/Math.pow(10, 18) > skinvialCollection[dna].floor.price) return;
+            skinvialCollection[dna].floor.price = skinOrder[0].current_price/Math.pow(10, 18);
             skinvialCollection[dna].floor.tokenId = skin.token_id;
             console.log(dna + skin.token_id + " : " + JSON.stringify(skinvialCollection[dna].floor));
           });
