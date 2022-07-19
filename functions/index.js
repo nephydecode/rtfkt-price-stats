@@ -37,7 +37,10 @@ app.post("/updateSkinVialStats", (req, res) => {
   // response.status(202).send("Update started. Please query stats in 10min.");
 });
 
-exports.nlytx = functions.https.onRequest(app);
+exports.nlytx = functions.runWith({
+  timeoutSeconds: 540,
+  memory: "1GB",
+}).https.onRequest(app);
 
 const getCloneXCollection = (response) => {
   console.log("started");
