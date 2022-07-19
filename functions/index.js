@@ -6,7 +6,6 @@ const admin = require("firebase-admin");
 const express = require("express");
 const app = express();
 require("dotenv").config();
-console.log(process.env.API_KEY);
 admin.initializeApp(functions.config().firebase);
 const database = admin.database();
 
@@ -161,8 +160,6 @@ const getSkinVialCollection = (response) => {
             database.ref("mnlth/dnaStats").set(skinvialDnaStats);
             const lastUpdate = new Date().toUTCString();
             database.ref("mnlth/lastUpdated").set(lastUpdate);
-            // res.status(200).send(clonesPrices);
-            // res.status(200).send(JSON.stringify(clonesPrices));
             const endTime = performance.now();
             const totalTime = (endTime - startTime)/1000;
             const output = "\n Function took " + totalTime + " seconds / " + totalTime/60 + "minutes to run.";
