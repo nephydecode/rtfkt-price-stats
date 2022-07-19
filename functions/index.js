@@ -18,8 +18,8 @@ app.get("/getClonexStats", (req, res) => {
   });
 });
 
-app.post("/updateClonexStats", (request, response) => {
-  getCloneXCollection(response);
+app.post("/updateClonexStats", (req, res) => {
+  getCloneXCollection(res);
   // response.status(202).send("Update started. Please query stats in 10min.");
 });
 
@@ -32,8 +32,8 @@ app.get("/getSkinVialStats", (req, res) => {
   });
 });
 
-app.post("/updateSkinVialStats", (request, response) => {
-  getSkinVialCollection(response);
+app.post("/updateSkinVialStats", (req, res) => {
+  getSkinVialCollection(res);
   // response.status(202).send("Update started. Please query stats in 10min.");
 });
 
