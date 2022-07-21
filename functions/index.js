@@ -47,7 +47,7 @@ const getCloneXCollection = (response) => {
   let collectionFloorPrice = 0;
   axios.get(collectionStatsUrl, {headers: {"X-API-KEY": process.env.API_KEY}})
       .then((res)=> {
-        collectionFloorPrice = res.stats.floor_price;
+        collectionFloorPrice = res.data.stats.floor_price;
       });
 
   console.log("started");
@@ -83,8 +83,7 @@ const getCloneXCollection = (response) => {
             const cloneOrder = clone.sell_orders === null ? clone.seaport_sell_orders : clone.sell_orders;
 
             if (cloneOrder[0].current_price===0) return; // bids check #1
-            if (cloneOrder[0].current_price < collectionFloorPrice) return; // bids check #2
-
+            if (cloneOrder[0].current_price/Math.pow(10, 18) < collectionFloorPrice) return; // bids check #2
             if (drip && cloneOrder[0].current_price/Math.pow(10, 18) < clonesPrices[dna].drip.price) {
               clonesPrices[dna].drip.price = cloneOrder[0].current_price/Math.pow(10, 18);
               clonesPrices[dna].drip.tokenId = clone.token_id;
@@ -133,7 +132,7 @@ const getSkinVialCollection = (response) => {
   let collectionFloorPrice = 0;
   axios.get(collectionStatsUrl, {headers: {"X-API-KEY": process.env.API_KEY}})
       .then((res)=> {
-        collectionFloorPrice = res.stats.floor_price;
+        collectionFloorPrice = res.data.stats.floor_price;
       });
   console.log("started");
   let pointer = "";
@@ -166,7 +165,7 @@ const getSkinVialCollection = (response) => {
             if (skin.sell_orders!==null && skin.sell_orders[0].payment_token_contract.symbol == "WETH") return;
             const skinOrder = skin.sell_orders === null ? skin.seaport_sell_orders : skin.sell_orders;
             if (skinOrder[0].current_price===0) return; // bids check #1
-            if (skinOrder[0].current_price < collectionFloorPrice) return; // bids check #2
+            if (skinOrder[0].current_price/Math.pow(10, 18) < collectionFloorPrice) return; // bids check #2
             if (skinOrder[0].current_price/Math.pow(10, 18) > skinvialCollection[dna].floor.price) return;
             skinvialCollection[dna].floor.price = skinOrder[0].current_price/Math.pow(10, 18);
             skinvialCollection[dna].floor.tokenId = skin.token_id;
