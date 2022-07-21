@@ -43,6 +43,13 @@ exports.nlytx = functions.runWith({
 }).https.onRequest(app);
 
 const getCloneXCollection = (response) => {
+  const collectionStatsUrl = "https://api.opensea.io/api/v1/collection/clonex/stats";
+  let collectionFloorPrice = 0;
+  axios.get(collectionStatsUrl, {headers: {"X-API-KEY": process.env.API_KEY}})
+      .then((res)=> {
+        collectionFloorPrice = res.stats.floor_price;
+      });
+
   console.log("started");
   let pointer = "";
   let newUrl = "https://api.opensea.io/api/v1/assets?collection_slug=clonex&order_direction=desc&limit=50" + pointer + "&include_orders=true";
@@ -75,7 +82,8 @@ const getCloneXCollection = (response) => {
             if (clone.sell_orders!==null && clone.sell_orders[0].payment_token_contract.symbol == "WETH") return;
             const cloneOrder = clone.sell_orders === null ? clone.seaport_sell_orders : clone.sell_orders;
 
-            if (cloneOrder[0].current_price===0) return; // bids
+            if (cloneOrder[0].current_price===0) return; // bids check #1
+            if (cloneOrder[0].current_price < collectionFloorPrice) return; // bids check #2
 
             if (drip && cloneOrder[0].current_price/Math.pow(10, 18) < clonesPrices[dna].drip.price) {
               clonesPrices[dna].drip.price = cloneOrder[0].current_price/Math.pow(10, 18);
@@ -121,6 +129,12 @@ const getCloneXCollection = (response) => {
 };
 
 const getSkinVialCollection = (response) => {
+  const collectionStatsUrl = "https://api.opensea.io/api/v1/collection/skinvial-evox/stats";
+  let collectionFloorPrice = 0;
+  axios.get(collectionStatsUrl, {headers: {"X-API-KEY": process.env.API_KEY}})
+      .then((res)=> {
+        collectionFloorPrice = res.stats.floor_price;
+      });
   console.log("started");
   let pointer = "";
   let newUrl = "https://api.opensea.io/api/v1/assets?collection_slug=skinvial-evox&order_direction=desc&limit=50&" + pointer + "include_orders=true";
@@ -151,6 +165,8 @@ const getSkinVialCollection = (response) => {
             if (skin.sell_orders===null && skin.seaport_sell_orders===null) return;
             if (skin.sell_orders!==null && skin.sell_orders[0].payment_token_contract.symbol == "WETH") return;
             const skinOrder = skin.sell_orders === null ? skin.seaport_sell_orders : skin.sell_orders;
+            if (skinOrder[0].current_price===0) return; // bids check #1
+            if (skinOrder[0].current_price < collectionFloorPrice) return; // bids check #2
             if (skinOrder[0].current_price/Math.pow(10, 18) > skinvialCollection[dna].floor.price) return;
             skinvialCollection[dna].floor.price = skinOrder[0].current_price/Math.pow(10, 18);
             skinvialCollection[dna].floor.tokenId = skin.token_id;
